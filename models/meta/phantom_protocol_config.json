@@ -1,0 +1,5 @@
+{
+    "enabled": true,
+    "delay_minutes": 5,
+    "expire_after": 7
+}

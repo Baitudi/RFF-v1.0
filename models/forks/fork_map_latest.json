@@ -1,0 +1,12 @@
+{
+    "paths": [
+        {
+            "direction": "UP",
+            "confidence": 0.78
+        },
+        {
+            "direction": "DOWN",
+            "confidence": 0.22
+        }
+    ]
+}
