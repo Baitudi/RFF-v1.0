@@ -1,0 +1,21 @@
+{
+  "timestamp": "2025-04-06_10-28-34",
+  "chart": "Chart4",
+  "decision": "UP",
+  "confidence": 92.4,
+  "trail": [
+    [
+      1000,
+      650
+    ],
+    [
+      1010,
+      660
+    ],
+    [
+      1020,
+      670
+    ]
+  ],
+  "outcome": null
+}

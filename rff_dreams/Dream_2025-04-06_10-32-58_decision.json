@@ -1,0 +1,60 @@
+{
+  "source": "2025-04-06_10-32-58_decision.json",
+  "chart": "Chart4",
+  "dreams": [
+    {
+      "original_decision": "UP",
+      "alternate_trail": [
+        [
+          998,
+          647
+        ],
+        [
+          1014,
+          659
+        ],
+        [
+          1017,
+          669
+        ]
+      ],
+      "simulated_outcome": "success"
+    },
+    {
+      "original_decision": "UP",
+      "alternate_trail": [
+        [
+          999,
+          648
+        ],
+        [
+          1006,
+          660
+        ],
+        [
+          1022,
+          673
+        ]
+      ],
+      "simulated_outcome": "fail"
+    },
+    {
+      "original_decision": "UP",
+      "alternate_trail": [
+        [
+          995,
+          649
+        ],
+        [
+          1005,
+          659
+        ],
+        [
+          1023,
+          674
+        ]
+      ],
+      "simulated_outcome": "success"
+    }
+  ]
+}
