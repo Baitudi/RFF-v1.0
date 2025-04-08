@@ -1,0 +1,1 @@
+print("[ReSynced - Ghost HUD]")
