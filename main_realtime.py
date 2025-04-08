@@ -1,56 +1,73 @@
+import cv2
+import numpy as np
+import os
+import signal
+import sys
 import time
-import threading
-from core.trail_detector import detect_trail_live
-from core.player_detector import detect_player_position
-from core.timer_ocr import read_purchase_timer
-from core.action_decider import decide_action
-from feedback.rff_memory import build_confidence_map
-from feedback.rff_evolver import evolve_from_dreams
-from eye_viewport.viewport_core import launch_viewport
-from eye_viewport.hud_data_feed import update_ai_insight
-from action_executor import execute_trade
 
-print("[RFF] Starting EYE Viewport...")
+# === RFF Modules ===
+from visual.visual_trail import draw_trail
+from visual.prediction_overlay import draw_prediction_forks
+from core import graph_parser
+from core import rff_decision
 
-# Launch the HUD viewport in a separate thread
-viewport_thread = threading.Thread(target=launch_viewport)
-viewport_thread.start()
+# === Config ===
+SNAPSHOT_FOLDER = "rff_dreams"
+WINDOW_NAME = "RFF Tactical Viewport"
+os.makedirs(SNAPSHOT_FOLDER, exist_ok=True)
 
-print("[RFF] Main realtime engine started.")
+trail_points = []
+MAX_TRAIL_LENGTH = 60
+frame_counter = 0
+snapshot_timer = time.time()
 
-# --- Main Loop ---
-try:
-    while True:
-        # 1. Read Timer
-        timer = read_purchase_timer()
+# === Shutdown Handler ===
+def exit_handler(sig, frame):
+    print("\n[INFO] Shutdown signal received. Cleaning up...")
+    cv2.destroyAllWindows()
+    sys.exit(0)
 
-        # 2. Detect Player
-        player_position = detect_player_position()
+signal.signal(signal.SIGINT, exit_handler)
 
-        # 3. Detect Trail
-        trail = detect_trail_live()
+# === Main Loop ===
+while True:
+    # --- 1. Capture chart + base frame ---
+    frame, chart_data = graph_parser.capture_chart_and_player()
 
-        # 4. Decision Engine
-        action, confidence = decide_action(trail, player_position, timer)
+    # --- 2. Detect Player Position ---
+    player_position = graph_parser.detect_player(chart_data)
 
-        # 5. Execute Trade
-        if action in ['CALL', 'PUT']:
-            execute_trade(action)
-            print(f"[RFF] Executed {action} action.")
-        else:
-            print("[RFF] WAIT decision — no trade executed.")
+    if player_position:
+        trail_points.append(player_position)
+        if len(trail_points) > MAX_TRAIL_LENGTH:
+            trail_points.pop(0)
 
-        # 6. Update AI HUD Insight
-        update_ai_insight(confidence)
+    # --- 3. Generate AI Fork Predictions ---
+    forks = rff_decision.generate_prediction_forks(
+        current_position=player_position,
+        trail=trail_points,
+        chart_image=chart_data
+    )
 
-        # 7. Meta Feedback + Dream Loop
-        if int(time.time()) % 10 == 0:
-            print("[RFF] Running Meta Feedback Cycle...")
-            build_confidence_map()
-            threading.Thread(target=evolve_from_dreams).start()
+    # --- 4. Visual Overlays ---
+    frame = draw_trail(frame, trail_points)
+    frame = draw_prediction_forks(frame, forks)
 
-        # 8. Small delay
-        time.sleep(1)
+    # --- 5. Show in Window ---
+    cv2.imshow(WINDOW_NAME, frame)
 
-except KeyboardInterrupt:
-    print("\n[RFF] Terminated by user.")
+    # --- 6. Auto-Save Snapshot Every 3 Sec ---
+    if time.time() - snapshot_timer >= 3:
+        snapshot_path = os.path.join(SNAPSHOT_FOLDER, f"frame_{frame_counter:03}.png")
+        cv2.imwrite(snapshot_path, frame)
+        print(f"[INFO] Snapshot saved: {snapshot_path}")
+        frame_counter += 1
+        snapshot_timer = time.time()
+
+    # --- 7. Manual Exit ---
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord('q') or key == 27:
+        print("[INFO] User exit triggered.")
+        break
+
+cv2.destroyAllWindows()
