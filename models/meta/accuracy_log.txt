@@ -1,0 +1,7 @@
+{
+  "total_forks": 42,
+  "correct_forks": 31,
+  "accuracy_percent": 73.8,
+  "session": "2025-04-08T23:59:40",
+  "source": "replayer_full_intel.py"
+}

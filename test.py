@@ -1,2 +1,0 @@
-from visual.replayer_full_intel import run_replayer_full_intel
-run_replayer_full_intel()
