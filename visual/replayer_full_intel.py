@@ -1,14 +1,16 @@
-# replayer_full_intel.py – with Ghost Memory Overlay
+# replayer_full_intel.py – Phase 7 HUD with Trail, Ghost, Forks, Accuracy
 
 import cv2
 import os
 import numpy as np
 import math
 from core import fork_tracker
+from core import fork_tracker
 from visual.fork_glow_renderer import draw_fork_with_glow
 from visual.fork_zone_mapper import highlight_convergence_zones
 from visual.ghost_learning_hud import draw_ghost_memory
 from phantom_engine import PhantomEngine
+from visual.trail_rewind import rewind_trail
 
 TRAIL_COLOR = (0, 255, 0)
 TRAIL_TOLERANCE = 20
@@ -42,6 +44,10 @@ def run_replayer_full_intel(folder_path="rff_dreams", delay=0.4):
     for idx, file in enumerate(image_files):
         frame = cv2.imread(os.path.join(folder_path, file))
         trail = find_trail_points(frame)
+
+        # ✅ Add trail rewind effect
+        frame = rewind_trail(frame, trail)
+
         angle_actual = average_direction(trail)
         if angle_actual is None: continue
 
@@ -63,23 +69,25 @@ def run_replayer_full_intel(folder_path="rff_dreams", delay=0.4):
             is_success = (fork == best and diff < 20)
             if fork == best:
                 if is_success: correct_forks += 1
+            fork_tracker.log_fork_result(idx, fork["start"], fork["end"], is_success)
                 phantom.record_fork(origin, fork["end"], is_success)
                 fork_tracker.log_fork_result(idx, fork["start"], fork["end"], is_success)
         total_forks += 1
 
-        # 🔮 Draw ghost memory trail
+        # 🔮 Ghost memory HUD
         ghost_path = phantom.get_ghost_path(steps=5)
         frame = draw_ghost_memory(frame, ghost_path)
 
-        # 💡 Draw convergence zones and accuracy score
+        # 🎯 Zone & score overlays
         frame = highlight_convergence_zones(frame, forks)
         accuracy = int((correct_forks / total_forks) * 100)
         cv2.putText(frame, f"AI Accuracy: {accuracy}%", (10, 30),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
 
-        # 🖥️ Show frame
+        # 🖥️ Show
         cv2.imshow("RFF Replay: Phase 7 + Ghost HUD", frame)
         if cv2.waitKey(int(delay * 1000)) in [27, ord('q')]: break
 
     cv2.destroyAllWindows()
+    fork_tracker.export_logs_to_json("models/meta/accuracy_log.txt")
     fork_tracker.export_logs_to_json("models/meta/accuracy_log.txt")

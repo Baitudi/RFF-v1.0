@@ -1,43 +1,44 @@
 import cv2
 from visual.flywheel_curve_renderer import draw_flywheel_curve
 
-def draw_ghost_memory(
-    frame,
-    ghost_trail,
-    intensity=0.4,
-    color=(200, 200, 255),
-    radius=4,
-    use_curve=True
-):
+def draw_ghost_overlay(image, forks, center_color=(0, 255, 0), glow_thickness=2):
     """
-    Draws a ghost memory overlay showing past AI trail (curved or point-based).
-
-    Args:
-        frame (ndarray): Frame to draw on.
-        ghost_trail (list): List of (x, y) points from AI memory.
-        intensity (float): Overlay alpha (0.0–1.0).
-        color (tuple): BGR color for trail.
-        radius (int): Radius of each ghost dot if curve is off.
-        use_curve (bool): If True, draws flywheel curve instead of dots.
-
-    Returns:
-        ndarray: Frame with ghost memory overlay applied.
+    Draws ghost forks on top of the input image using flywheel glow effect.
+    - forks: List of fork dictionaries with 'point', 'confidence', and 'phantom' keys
+    - image: Base frame to draw on
     """
-    overlay = frame.copy()
+    if not forks:
+        return image
 
-    if not ghost_trail:
-        return frame
+    base_point = forks[0]["point"]
 
-    if use_curve and len(ghost_trail) >= 2:
-        overlay = draw_flywheel_curve(
-            overlay,
-            points=ghost_trail,
-            color=color,
-            thickness=2,
-            tension=0.5
-        )
-    else:
-        for pt in ghost_trail:
-            cv2.circle(overlay, pt, radius, color, -1)
+    # Draw center marker
+    cv2.circle(image, base_point, 5, center_color, -1)
 
-    return cv2.addWeighted(overlay, intensity, frame, 1 - intensity, 0)
+    # Draw directional curves
+    image = draw_flywheel_curve(image, forks, center_color=center_color, thickness=glow_thickness)
+
+    # Annotate forks with confidence
+    for fork in forks:
+        pt = fork["point"]
+        label = f"{int(fork['confidence'] * 100)}%"
+        cv2.putText(image, label, (pt[0] + 6, pt[1] - 6), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (180, 255, 180), 1)
+
+    return image
+
+def draw_ghost_memory(image, forks, glow_color=(180, 180, 255)):
+    """
+    Draws ghost forks from memory logs in soft faded style.
+    """
+    if not forks:
+        return image
+
+    for fork in forks:
+        end = fork["end"]
+        correct = fork.get("correct", False)
+
+        # Green for correct, red for wrong
+        color = (0, 255, 0) if correct else (0, 0, 255)
+        cv2.circle(image, end, 4, color, -1)
+
+    return image

@@ -1,65 +1,68 @@
-import math
 import numpy as np
+from math import cos, sin, radians
 
 class PhantomEngine:
     def __init__(self):
-        self.memory = []
-        self.failed_forks = []
-        self.correct_forks = []
-        self.last_direction = None
+        self.phantom_trails = []
+        self.volatility_index = 1.0
+        self.dream_map = []
 
-    def record_fork(self, origin, end, is_success):
-        fork = {
-            "origin": origin,
-            "end": end,
-            "angle": self._calculate_angle(origin, end)
-        }
-        self.memory.append(fork)
-
-        if is_success:
-            self.correct_forks.append(end)
-        else:
-            self.failed_forks.append(end)
-
-    def _calculate_angle(self, start, end):
-        dx, dy = end[0] - start[0], end[1] - start[1]
-        return math.degrees(math.atan2(dy, dx))
-
-    def most_common_direction(self):
-        if not self.memory:
-            return None
-        angles = [f["angle"] for f in self.memory]
-        avg_angle = sum(angles) / len(angles)
-        self.last_direction = avg_angle
-        return avg_angle
-
-    def get_ghost_path(self, steps=5, length=40):
+    def inject_failed_forks(self, failed_points):
         """
-        Generates a forward path in the direction of memory's average angle.
+        Inject fork failures from hallucination memory (drift patterns).
         """
-        if not self.last_direction:
-            self.most_common_direction()
+        self.dream_map.extend(failed_points)
+        self.volatility_index += 0.1 * len(failed_points)
 
-        if self.last_direction is None:
-            return []
+    def generate_phantom_forks(self, current_position, momentum=1.0):
+        """
+        Generate invisible forks based on fork drift logic.
+        Returns a list of fork prediction dicts.
+        """
+        forks = []
+        np.random.seed(42)  # consistent ghost generation
+        angles = [-45, 0, 45]
 
-        rad = math.radians(self.last_direction)
-        direction = (math.cos(rad) * length, math.sin(rad) * length)
-        ghost_path = []
-        x, y = self.memory[-1]["end"] if self.memory else (300, 300)
+        for angle in angles:
+            drift = self.volatility_index * np.random.uniform(0.8, 1.2)
+            dx = int(momentum * drift * cos(radians(angle)))
+            dy = int(momentum * drift * sin(radians(angle)))
+            phantom_point = (current_position[0] + dx, current_position[1] + dy)
+            forks.append({
+                "point": phantom_point,
+                "confidence": round(np.random.uniform(0.5, 0.9), 2),
+                "phantom": True
+            })
 
-        for _ in range(steps):
-            x += direction[0]
-            y += direction[1]
-            ghost_path.append((int(x), int(y)))
+        self.phantom_trails.append((current_position, forks))
+        return forks
 
-        return ghost_path
+    def get_phantom_history(self):
+        return self.phantom_trails
 
-    def get_memory(self):
-        return self.memory
 
-    def get_failures(self):
-        return self.failed_forks
+# 🔁 Direct test execution
+if __name__ == "__main__":
+    import pickle
+    import os
 
-    def get_successes(self):
-        return self.correct_forks
+    def load_phantom_model(path="models/phantom_model_beta.pkl"):
+        if not os.path.exists(path):
+            print(f"[ERROR] Phantom model not found at: {path}")
+            exit()
+        with open(path, "rb") as f:
+            return pickle.load(f)
+
+    # Initialize engine
+    engine = PhantomEngine()
+
+    # Load and inject phantom model
+    model = load_phantom_model()
+    engine.inject_failed_forks(model["drift_patterns"])
+
+    # Generate forks
+    result = engine.generate_phantom_forks(current_position=(100, 100), momentum=1.5)
+
+    print("\n📡 PHANTOM FORKS GENERATED:")
+    for fork in result:
+        print(fork)
